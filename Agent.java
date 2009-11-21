@@ -31,25 +31,40 @@ public class Agent{
   static int pop=0, popLimit=0;
   static int years=0;
   static int situation;
+  static int cycles;
   
   
   static int lastHouseStarted=Integer.MAX_VALUE;
 
   public static void main(String[] args){
     in = new Scanner(System.in);
+    cycles = 0;
     
     while(true){  
+      if (cycles!=0){
+	getSituation();
+	System.out.println();
+      }
+      cycles++;
+      
       getState();
+      System.out.println();
       dump();
+
+      
       
       for (int i=0; i<5; i++){
 	if (decideOnScreenAction()){
-	  //Give instructions
+	  System.out.println();
+	  instruct();
+	  System.out.println();
 	  break;
 	} else {
 	  if (i==4){
 	    decideFallBack();
-	    //Give instructions
+	    System.out.println();
+	    instruct();
+	    System.out.println();
 	    break;
 	  }
 	  System.out.println("Move your view to the frame one screen "+directions[i]+" of the village center");
@@ -59,8 +74,12 @@ public class Agent{
     }
   }
 
+  public static void instruct(){
+    System.out.println("Pause and report back if a message appears on-screen or years left are "+(years-10)+" or less");
+  }
+
   public static int getSituation(){
-    System.out.print("Why we stopped? (m)essage or (t)imeout? ");
+    System.out.print("Why are we stopped? (m)essage or (t)imeout? ");
     String response = in.nextLine().trim().toLowerCase();
     while (!(response.equals("m") || response.equals("t"))){
       System.out.print("Please respond m/t. ");
@@ -183,23 +202,26 @@ public class Agent{
   public static void getState(){
     for (int i=0; i<4; i++){
       System.out.print("Amount of stored "+names[i]+"? ");
-      resources[i]=in.nextInt();      
+      resources[i]=Integer.parseInt(in.nextLine());      
     }
     
     System.out.print("Current population? ");
-    pop = in.nextInt();
+    pop = Integer.parseInt(in.nextLine());
     
     System.out.print("Current population limit? ");
-    popLimit = in.nextInt();
+    popLimit = Integer.parseInt(in.nextLine());
 
     System.out.print("Years remaining? ");
-    years = in.nextInt();
+    years = Integer.parseInt(in.nextLine());
   }
 
   public static void dump(){
+    System.err.println("---------------------------------------");
     for (int i=0; i<4; i++){
       System.err.print(names[i]+":"+resources[i]+" ");
     }
     System.err.println(pop+"/"+popLimit+" "+years);
+    System.err.println("Cycles:"+cycles);
+    System.err.println("---------------------------------------");
   }
 }
