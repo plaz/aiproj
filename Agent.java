@@ -15,23 +15,35 @@ public class Agent{
   public static final int MIN_HOUSE_FOOD=50;
   public static final int MIN_PERSON_FOOD=MIN_HOUSE_FOOD;
 
-  //Possible situations
+  //Costs
+  public static final int FARM_COST=60;
+  public static final int HOUSE_COST=30;
+  public static final int WORKER_COST=50;
+
+  //Possible states
   public static final int TIMEOUT=0;
   public static final int HOUSE_BUILT=1;
   public static final int FARM_BUILT=2;
   public static final int SHEEP_FOUND=3;
   public static final int WORKER_BUILT=4;
   public static final int FARM_DEAD=5;
+  public static final int WAITING = 6;
+  public static final int LOOPBACK= 7;
   
-  //Output strings
+  //Output strings and indices
   public static final String names[] = {"wood","food","gold","stone"};
+  public static final int WOOD=0;
+  public static final int FOOD=1;
+  public static final int GOLD=2;
+  public static final int STONE=3;
   public static final String directions[] = {"east","north","west","south"};
   
   static int resources[] = new int[4];
   static int pop=0, popLimit=0;
   static int years=0;
-  static int situation;
+  static int state;
   static int cycles;
+  static boolean haveIdle;
   
   
   static int lastHouseStarted=Integer.MAX_VALUE;
@@ -41,13 +53,17 @@ public class Agent{
     cycles = 0;
     
     while(true){  
-      if (cycles!=0){
-	getSituation();
+      if (cycles==0){
+	System.out.println("In all prompts, when requested to pause, press 'F3'.");
+	System.out.println("Also note that to select the village center, you can press 'h' instead of clicking.");
+	System.out.println("Click the select idle worker button, then pause.");
+      } else {
+	getState();
 	System.out.println();
       }
       cycles++;
       
-      getState();
+      getResources();
       System.out.println();
       dump();
 
@@ -55,16 +71,12 @@ public class Agent{
       
       for (int i=0; i<5; i++){
 	if (decideOnScreenAction()){
-	  System.out.println();
 	  instruct();
-	  System.out.println();
 	  break;
 	} else {
 	  if (i==4){
 	    decideFallBack();
-	    System.out.println();
 	    instruct();
-	    System.out.println();
 	    break;
 	  }
 	  System.out.println("Move your view to the frame one screen "+directions[i]+" of the village center");
@@ -75,10 +87,24 @@ public class Agent{
   }
 
   public static void instruct(){
-    System.out.println("Pause and report back if a message appears on-screen or years left are "+(years-10)+" or less");
+    System.out.println();
+    if (!haveIdle){
+      System.out.println("If a message appears on-screen or years left are "+(years-10)+" or less,");
+      System.out.println("then click on any open ground, click the idle worker button, pause, and report back.");
+      state = WAITING;
+    }
+    else{
+      System.out.println("Immediately after performing the above action,");
+      System.out.println("click on any open ground, click the idle worker button, pause, and report back.");
+      state = LOOPBACK;
+    }
+    System.out.println();
   }
 
-  public static int getSituation(){
+  public static int getState(){
+    if (state == LOOPBACK){
+      return LOOPBACK;
+    }
     System.out.print("Why are we stopped? (m)essage or (t)imeout? ");
     String response = in.nextLine().trim().toLowerCase();
     while (!(response.equals("m") || response.equals("t"))){
@@ -119,21 +145,33 @@ public class Agent{
   }
 
   public static boolean decideOnScreenAction(){
-    
+    haveIdle = false;
+    if (state == HOUSE_BUILT
+	|| state == WORKER_BUILT
+	|| state == FARM_DEAD)
+      haveIdle=true;
+    else {
+      System.out.print("Is a villager selected? ");
+      haveIdle = getYesNo();
+    }
+
+
     if(canBuildHouse()){
       buildHouse();
     } else if(canBuildWorker()){
       buildWorker();
-    } else if(onScreen("deer")){
+    } else if(haveIdle && onScreen("deer")){
       hunt();
-    } else if(onScreen("sheep")){
+    } else if(haveIdle && onScreen("sheep")){
       herd();
-    } else if(onScreen("bushes")){
+    } else if(haveIdle && onScreen("bushes")){
       forage();
-    } else if(farmIsPriority() && canBuildFarm()){
+    } else if(haveIdle && farmIsPriority() && canBuildFarm()){
       farm();
-    } else if(onScreen("wood")){
+    } else if(haveIdle && onScreen("trees")){
       chop();
+    } else if(haveIdle && canBuildFarm()){
+      farm();
     } else{
       return false;
     }
@@ -143,52 +181,78 @@ public class Agent{
 
   public static boolean canBuildHouse()
   {
-    //FIXME fill method
-    return false;
+    if (pop==popLimit 
+	&& popLimit<MAX_POP 
+	&& years>MIN_HOUSE_YEARS
+	&& resources[WOOD]>=HOUSE_COST
+	&& resources[FOOD]>=MIN_HOUSE_FOOD){
+      System.out.println("Search revealed area. Is there a partially completed house being worked on? ");
+      return !getYesNo();
+    }
   }
+
   public static void buildHouse(){
+    System.out.println("BUILD HOUSE");
     //FIXME fill method
   }
 
 
   public static boolean canBuildWorker()
   {
-    //FIXME fill method
-    return false;
+    if (pop<popLimit
+	&& resources[FOOD]>=WORKER_COST
+	&& years >= MIN_WORKER_YEARS)
+      {
+	System.out.print("Unpause, select the town center, and repause. Is a villager being built? ");
+	boolean villagerBuilt = getYesNo();  
+	if (villagerBuilt){
+	  System.out.println("Please unpause, click the select idle worker button, and repause.");
+	}
+	return !villagerBuilt;
+      }
+    else
+      return false;
   }
+
   public static void buildWorker(){
-    //FIXME fill method
+    System.out.println();
+    int numWorkers = Math.min(resources[FOOD]/WORKER_COST, popLimit-pop);
+    System.out.println("Select the town center and then click the build a villager button "+numWorkers+" times.");
   }
 
   public static void hunt(){
-    //FIXME fill method
+    System.out.println("Right-click on the deer closest to the selected worker.");
   }
 
   public static void herd(){
-    //FIXME fill method
+    System.out.println("Right-click on the sheep closest to the selected worker.");
   }
   public static void forage(){
-    //FIXME fill method
+    System.out.println("Right-click on the bush closest to the selected worker.");
   }
   public static void farm(){
+    System.out.println("BUILD FARM");
     //FIXME fill method
   }
   public static void chop(){
-    //FIXME fill method
+    System.out.println("Right-click on the tree closest to the selected worker.");
   }
   public static boolean farmIsPriority(){
-    //FIXME fill method
-    return false;
+    return (resources[WOOD]>=FARM_WOOD_THRESH 
+	    && years > MIN_FARM_YEARS);
   }
 
   public static boolean canBuildFarm(){
-    //FIXME fill method
-    return false;
+    return resources[WOOD] > FARM_COST;
   }
 
   public static boolean onScreen(String thing){
     System.out.print("Are there "+thing+" on the screen? ");
-    String response = in.nextLine().trim().toLowerCase();
+    return getYesNo();
+  }
+
+  public static boolean getYesNo(){
+   String response = in.nextLine().trim().toLowerCase();
     while (!(response.equals("y") || response.equals("n"))){
       System.out.print("Please respond y/n. ");
       response = in.nextLine().trim().toLowerCase();
@@ -196,10 +260,10 @@ public class Agent{
     if (response.equals("y"))
       return true;
     else
-      return false;
+      return false; 
   }
 
-  public static void getState(){
+  public static void getResources(){
     for (int i=0; i<4; i++){
       System.out.print("Amount of stored "+names[i]+"? ");
       resources[i]=Integer.parseInt(in.nextLine());      
@@ -221,7 +285,7 @@ public class Agent{
       System.err.print(names[i]+":"+resources[i]+" ");
     }
     System.err.println(pop+"/"+popLimit+" "+years);
-    System.err.println("Cycles:"+cycles);
+    System.err.println("Cycles:"+cycles+" Idle:"+haveIdle);
     System.err.println("---------------------------------------");
   }
 }
