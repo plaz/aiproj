@@ -1,20 +1,16 @@
 Change instructions of actions from post-pause to pre-pause (remember
    workers aren't unidled until unpause)
 
-Add fallback actions
-
-Add farm-building and house-building instructions
-
-Add "desperation" - if nothing in one screen range but hurting for
-   food/wood - search further instead of falling back to gold/stone
-
 DEBUG
 DEBUG
 DEBUG
 
 Grammar fixups where necessary
 
-Consider if resources are being actively harvested before assigning
-   to?
+Remove calls to dump()
 
-Scout movement
+Add confirmation to resource numbers
+
+Clean up newlines
+
+Test desperation\fallback
